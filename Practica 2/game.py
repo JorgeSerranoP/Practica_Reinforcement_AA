@@ -1,6 +1,32 @@
+from __future__ import print_function
+from __future__ import division
 # game.py
 # -------
+# Licensing Information:  You are free to use or extend these projects for
+# educational purposes provided that (1) you do not distribute or publish
+# solutions, (2) you retain this notice, and (3) you provide clear
+# attribution to UC Berkeley.
+# 
+# Attribution Information: The Pacman AI projects were developed at UC Berkeley.
+# The core projects and autograders were primarily created by John DeNero
+# (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
+# Student side autograding was added by Brad Miller, Nick Hay, and
+# Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
+
+# game.py
+# -------
+# Licensing Information: Please do not distribute or publish solutions to this
+# project. You are free to use and extend these projects for educational
+# purposes. The Pacman AI projects were developed at UC Berkeley, primarily by
+# John DeNero (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
+
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from past.utils import old_div
+from builtins import object
 from util import *
 import time, os
 import traceback
@@ -10,7 +36,7 @@ import sys
 # Parts worth reading #
 #######################
 
-class Agent:
+class Agent(object):
     """
     An agent must define a getAction method, but may also define the
     following methods which will be called if they exist:
@@ -27,7 +53,7 @@ class Agent:
         """
         raiseNotDefined()
 
-class Directions:
+class Directions(object):
     NORTH = 'North'
     SOUTH = 'South'
     EAST = 'East'
@@ -48,7 +74,7 @@ class Directions:
                WEST: EAST,
                STOP: STOP}
 
-class Configuration:
+class Configuration(object):
     """
     A Configuration holds the (x,y) coordinate of a character, along with its
     traveling direction.
@@ -98,7 +124,7 @@ class Configuration:
             direction = self.direction # There is no stop direction
         return Configuration((x + dx, y+dy), direction)
 
-class AgentState:
+class AgentState(object):
     """
     AgentStates hold the state of an agent (configuration, speed, scared, etc).
     """
@@ -109,6 +135,7 @@ class AgentState:
         self.isPacman = isPacman
         self.scaredTimer = 0
         self.numCarrying = 0
+        self.numReturned = 0
 
     def __str__( self ):
         if self.isPacman:
@@ -129,6 +156,7 @@ class AgentState:
         state.configuration = self.configuration
         state.scaredTimer = self.scaredTimer
         state.numCarrying = self.numCarrying
+        state.numReturned = self.numReturned
         return state
 
     def getPosition(self):
@@ -138,7 +166,7 @@ class AgentState:
     def getDirection(self):
         return self.configuration.getDirection()
 
-class Grid:
+class Grid(object):
     """
     A 2-dimensional array of objects backed by a list of lists.  Data is accessed
     via grid[x][y] where (x,y) are positions on a Pacman map with x horizontal,
@@ -225,7 +253,7 @@ class Grid:
         return tuple(bits)
 
     def _cellIndexToPosition(self, index):
-        x = index / self.height
+        x = old_div(index, self.height)
         y = index % self.height
         return x, y
 
@@ -263,7 +291,7 @@ def reconstituteGrid(bitRep):
 # Parts you shouldn't have to read #
 ####################################
 
-class Actions:
+class Actions(object):
     """
     A collection of static methods for manipulating move actions.
     """
@@ -347,7 +375,7 @@ class Actions:
         return (x + dx, y + dy)
     getSuccessor = staticmethod(getSuccessor)
 
-class GameStateData:
+class GameStateData(object):
     """
 
     """
@@ -468,6 +496,7 @@ class GameStateData:
         Creates an initial game state from a layout array (see layout.py).
         """
         self.food = layout.food.copy()
+        #self.capsules = []
         self.capsules = layout.capsules[:]
         self.layout = layout
         self.score = 0
@@ -488,7 +517,7 @@ try:
 except:
     _BOINC_ENABLED = False
 
-class Game:
+class Game(object):
     """
     The Game manages the control flow, soliciting actions from agents.
     """
@@ -541,7 +570,6 @@ class Game:
         sys.stdout = OLD_STDOUT
         sys.stderr = OLD_STDERR
 
-
     def run( self ):
         """
         Main control loop for game play.
@@ -561,6 +589,7 @@ class Game:
                 self.unmute()
                 self._agentCrash(i, quiet=True)
                 return
+
             if ("registerInitialState" in dir(agent)):
                 self.mute(i)
                 if self.catchExceptions:
@@ -588,12 +617,13 @@ class Game:
 
         agentIndex = self.startingIndex
         numAgents = len( self.agents )
-
+        step = 0
         while not self.gameOver:
             # Fetch the next agent
             agent = self.agents[agentIndex]
             move_time = 0
             skip_action = False
+                
             # Generate an observation of the state
             if 'observationFunction' in dir( agent ):
                 self.mute(agentIndex)
@@ -616,9 +646,9 @@ class Game:
                 self.unmute()
             else:
                 observation = self.state.deepCopy()
-
             # Solicit an action
             action = None
+            step += 1
             self.mute(agentIndex)
             if self.catchExceptions:
                 try:
