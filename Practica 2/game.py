@@ -757,7 +757,6 @@ class Game(object):
                     return
             else:
                 self.state = self.state.generateSuccessor(agentIndex, action)
-
             # Change the display
             self.display.update(self.state.data)
             ###idx = agentIndex - agentIndex % 2 + 1
