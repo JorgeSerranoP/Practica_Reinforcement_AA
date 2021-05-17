@@ -1,6 +1,8 @@
 from __future__ import print_function
+import os
 import sys
 import random
+import numpy as np
 from distanceCalculator import Distancer
 from game import Actions
 # bustersAgents.py
@@ -376,15 +378,23 @@ class QLearningAgent(BustersAgent):
         - self.discount (discount rate)
     """
 
-    def __init__(self, **args):
-        "Initialize Q-values"
-        BustersAgent.__init__(self, **args)
-
-        self.actions = {"north": 0, "east": 1,
-                        "south": 2, "west": 3, "exit": 4}
-        self.table_file = open("qtable.txt", "r+")
-        self.q_table = self.readQtable()
+    def registerInitialState(self, gameState):
+        BustersAgent.registerInitialState(self, gameState)
+        self.distancer = Distancer(gameState.data.layout, False)
         self.epsilon = 0.05
+        self.alfa = 0.5
+        self.discount = 0.8
+        self.actions = {"North": 0, "East": 1, "South": 2, "West": 3}
+        if os.path.exists("qtable.txt"):
+            self.table_file = open("qtable.txt", "r+")
+            self.q_table = self.readQtable()
+        else:
+            self.table_file = open("qtable.txt", "w+")
+            self.initializeQTable(4)
+
+    def initializeQTable(self, nrwos):
+        print(nrwos)
+        self.q_table = np.zeros((nrwos, len(self.actions)))
 
     def readQtable(self):
         "Read qtable from disc"
@@ -423,7 +433,29 @@ class QLearningAgent(BustersAgent):
         Compute the row of the qtable for a given state.
         For instance, the state (3,1) is the row 7
         """
-        return state[0]+state[1]*4
+        return 1
+
+    def QlearningState(self, gameState):
+        qState = ""
+        # Ghost position
+        ghostPosition = gameState.getGhostPositions()[0]
+        # Pacman position
+        pacmanPosition = gameState.getPacmanPosition()
+        if (ghostPosition[0] < pacmanPosition[0]):
+            qState += "WEST" + ","
+        else:
+            qState += "EAST" + ","
+        if (ghostPosition[1] < pacmanPosition[1]):
+            qState += "SOUTH" + ","
+        else:
+            qState += "NORTH" + ","
+        # Ghost distance
+        for ghostDistance in gameState.data.ghostDistances:
+            if ghostDistance == None:
+                ghostDistance = -1
+            qState += str(ghostDistance)
+        print(qState)
+        return qState
 
     def getQValue(self, state, action):
         """
@@ -443,7 +475,9 @@ class QLearningAgent(BustersAgent):
           there are no legal actions, which is the case at the
           terminal state, you should return a value of 0.0.
         """
-        legalActions = self.getLegalActions(state)
+        legalActions = state.getLegalActions(0)
+        if 'Stop' in legalActions:
+            legalActions.remove("Stop")
         if len(legalActions) == 0:
             return 0
         return max(self.q_table[self.computePosition(state)])
@@ -454,7 +488,9 @@ class QLearningAgent(BustersAgent):
           are no legal actions, which is the case at the terminal state,
           you should return None.
         """
-        legalActions = self.getLegalActions(state)
+        legalActions = state.getLegalActions(0)
+        if 'Stop' in legalActions:
+            legalActions.remove("Stop")
         if len(legalActions) == 0:
             return None
 
@@ -480,7 +516,9 @@ class QLearningAgent(BustersAgent):
         """
 
         # Pick Action
-        legalActions = self.getLegalActions(state)
+        legalActions = state.getLegalActions(0)
+        if 'Stop' in legalActions:
+            legalActions.remove("Stop")
         action = None
 
         if len(legalActions) == 0:
