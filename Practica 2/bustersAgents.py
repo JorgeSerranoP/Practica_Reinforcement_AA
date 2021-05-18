@@ -444,18 +444,41 @@ class QLearningAgent(BustersAgent):
         else:
             return 3
         
+    def getNearestGhost(self, gameState):
+        if(gameState.getNumAgents() > 0):
+            minDistance = 900000
+            pacmanPosition = gameState.getPacmanPosition()
+            for i in range(0, gameState.getNumAgents() - 1):
+                ghostPosition = gameState.getGhostPositions()[i]
+                distance = util.manhattanDistance(
+                    pacmanPosition, ghostPosition)
+                if distance < minDistance:
+                    minDistance = distance
+            return minDistance
+
+        else:
+            return None
 
     def QlearningState(self, gameState):
         qState = 0
+        i = 0
+        indexNearGhost = 0
         # Ghost position
-        ghostPosition = gameState.getGhostPositions()[0]
+        distNear = self.getNearestGhost(gameState)
+        for ghostDistance in gameState.data.ghostDistances:
+            if ghostDistance == None:
+                ghostDistance = -1
+            if ghostDistance == distNear:
+                indexNearGhost = i
+            i +=1     
+        ghostPosition = gameState.getGhostPositions()[indexNearGhost]
         # Pacman position
         pacmanPosition = gameState.getPacmanPosition()
         if (ghostPosition[0] < pacmanPosition[0]):
-            qState = 3 #Oeste
+            qState = 3 #Oeste    
         elif(ghostPosition[0] > pacmanPosition[0]):
             qState = 2 #Este
-        elif (ghostPosition[1] < pacmanPosition[1]):
+        elif (ghostPosition[1]< pacmanPosition[1]):
             qState = 1 #Sur
         elif (ghostPosition[1] > pacmanPosition[1]):
             qState = 0 #Norte       
