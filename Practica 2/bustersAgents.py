@@ -90,6 +90,7 @@ class BustersAgent(object):
         self.inferenceModules = [inferenceType(a) for a in ghostAgents]
         self.observeEnable = observeEnable
         self.elapseTimeEnable = elapseTimeEnable
+        self.counter = 1
 
     def registerInitialState(self, gameState):
         "Initializes beliefs and inference modules"
@@ -382,13 +383,16 @@ class QLearningAgent(BustersAgent):
         BustersAgent.registerInitialState(self, gameState)
         self.distancer = Distancer(gameState.data.layout, False)
         self.epsilon = 0.05
-        self.alpha = 0.5
+        self.alpha = 0.8
         self.discount = 0.8
         self.actions = {"North": 0, "East": 1, "South": 2, "West": 3}
-        
+        self.lastState = None
+
         if os.path.exists("qtable.txt"):          
-            self.table_file = open("qtable.txt", "r+")                         
-            self.q_table = self.readQtable()                   
+            if self.counter ==1:    
+                self.table_file = open("qtable.txt", "r+")                         
+                self.q_table = self.readQtable()
+                self.counter = 0                   
         else:
             self.table_file = open("qtable.txt", "w+")
             self.initializeQTable(4)
@@ -474,14 +478,22 @@ class QLearningAgent(BustersAgent):
         ghostPosition = gameState.getGhostPositions()[indexNearGhost]
         # Pacman position
         pacmanPosition = gameState.getPacmanPosition()
-        if (ghostPosition[0] < pacmanPosition[0]):
-            qState = 3 #Oeste    
-        elif(ghostPosition[0] > pacmanPosition[0]):
-            qState = 2 #Este
+        if (ghostPosition[1] > pacmanPosition[1]):
+            qState = 0 #Norte 
+            if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]+1]):
+                qState = 2
         elif (ghostPosition[1]< pacmanPosition[1]):
             qState = 1 #Sur
-        elif (ghostPosition[1] > pacmanPosition[1]):
-            qState = 0 #Norte       
+            if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]-1]):
+                qState = 2
+        elif(ghostPosition[0] > pacmanPosition[0]):
+            qState = 2 #Este
+            if(gameState.getWalls()[pacmanPosition[0]+1][pacmanPosition[1]]):
+                qState = 0
+        elif (ghostPosition[0] < pacmanPosition[0]):
+            qState = 3 #Oeste
+            if(gameState.getWalls()[pacmanPosition[0]-1][pacmanPosition[1]]):
+                qState = 0          
         return qState
 
     def getQValue(self, state, action):
@@ -563,9 +575,9 @@ class QLearningAgent(BustersAgent):
         position = self.computePosition(state)       
 
         # If terminal_state
-       
-        
-        actionNext = self.computeActionFromQValues(state)
+
+        actionNext = self.computeActionFromQValues(nextState)
+
         self.q_table[position][action_column] = (
             1-self.alpha)*self.getQValue(state, action) + self.alpha*(reward + self.discount*self.getQValue(nextState, actionNext))
         # TRACE for updated q-table. Comment the following lines if you do not want to see that trace
@@ -601,28 +613,33 @@ class QLearningAgent(BustersAgent):
             return action
 
         flip = util.flipCoin(self.epsilon)
+        if( not self.lastState is None):
+            if flip:
+                randomAction = random.choice(legalActions)
+                if(self.QlearningState(state) == 0 and randomAction == "North"):
+                    reward = 1   
+                elif(self.QlearningState(state) == 1 and randomAction == "South"):
+                    reward = 1
+                elif(self.QlearningState(state) == 2 and randomAction == "East"):
+                    reward = 1
+                elif(self.QlearningState(state) == 3 and randomAction == "West"):
+                    reward = 1
+                self.update(self.lastState, randomAction, state, reward)
+                self.lastState = state
+                return randomAction
 
-        if flip:
-            randomAction = random.choice(legalActions)
-            if(self.QlearningState(state) == 0 and randomAction == "North"):
+            policyAction = self.getPolicy(state)
+            if(self.QlearningState(state) == 0 and policyAction == "North"):
                 reward = 1
-            if(self.QlearningState(state) == 1 and randomAction == "South"):
+            elif(self.QlearningState(state) == 1 and policyAction == "South"):
                 reward = 1
-            if(self.QlearningState(state) == 2 and randomAction == "East"):
+            elif(self.QlearningState(state) == 2 and policyAction == "East"):
                 reward = 1
-            if(self.QlearningState(state) == 3 and randomAction == "West"):
+            elif(self.QlearningState(state) == 3 and policyAction == "West"):
                 reward = 1
-            self.update(state, randomAction, state, reward)
-            return randomAction
-
-        policyAction = self.getPolicy(state)
-        if(self.QlearningState(state) == 0 and policyAction == "North"):
-            reward = 1
-        if(self.QlearningState(state) == 1 and policyAction == "South"):
-            reward = 1
-        if(self.QlearningState(state) == 2 and policyAction == "East"):
-            reward = 1
-        if(self.QlearningState(state) == 3 and policyAction == "West"):
-            reward = 1
-        self.update(state, policyAction , state, reward)
-        return policyAction
+            self.update(self.lastState, policyAction , state, reward)
+            self.lastState = state
+            return policyAction
+        else:
+            self.lastState = state
+            return random.choice(legalActions)
