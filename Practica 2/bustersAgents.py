@@ -450,65 +450,87 @@ class QLearningAgent(BustersAgent):
     def getNearestGhost(self, gameState):
         if(gameState.getNumAgents() > 0):
             minDistance = 900000
-            pacmanPosition = gameState.getPacmanPosition()
-            for i in range(0, gameState.getNumAgents() - 1):
-                ghostPosition = gameState.getGhostPositions()[i]
-                distance = util.manhattanDistance(
-                    pacmanPosition, ghostPosition)
-                if distance < minDistance:
-                    minDistance = distance
-            return minDistance
-
+            i = 0
+            indexNearGhost = 0
+            for ghostDistance in gameState.data.ghostDistances:
+                if ghostDistance == None:
+                    ghostDistance = 9999999
+                if ghostDistance < minDistance:
+                    minDistance = ghostDistance
+                    indexNearGhost = i
+                i +=1
+            return indexNearGhost
         else:
             return None
 
     def QlearningState(self, gameState):
         qState = 0
-        i = 0
         indexNearGhost = 0
         # Ghost position
-        distNear = self.getNearestGhost(gameState)
-        for ghostDistance in gameState.data.ghostDistances:
-            if ghostDistance == None:
-                ghostDistance = -1
-            if ghostDistance == distNear:
-                indexNearGhost = i
-            i +=1     
+        indexNearGhost = self.getNearestGhost(gameState)
         ghostPosition = gameState.getGhostPositions()[indexNearGhost]
         # Pacman position
         pacmanPosition = gameState.getPacmanPosition()
         if (ghostPosition[1] > pacmanPosition[1]):
             qState = self.actions["North"] #Norte 
             if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]+1]):
-                qState = self.actions["East"]
-                if(gameState.getWalls()[pacmanPosition[0]+1][pacmanPosition[1]]):
+                if(ghostPosition[0] > pacmanPosition[0]):
+                    qState = self.actions["East"]
+                    if(gameState.getWalls()[pacmanPosition[0]+1][pacmanPosition[1]]):
+                        qState = self.actions["West"]
+                        if(gameState.getWalls()[pacmanPosition[0]-1][pacmanPosition[1]]):
+                            qState = self.actions["South"]
+                elif(ghostPosition[0] < pacmanPosition[0]):
                     qState = self.actions["West"]
                     if(gameState.getWalls()[pacmanPosition[0]-1][pacmanPosition[1]]):
-                        qState = self.actions["South"]
-        elif (ghostPosition[1]< pacmanPosition[1]):
-            qState = self.actions["South"] #Sur
-            if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]-1]):
-                qState = self.actions["East"]
-                if(gameState.getWalls()[pacmanPosition[0]+1][pacmanPosition[1]]):
-                    qState = self.actions["West"]
-                    if(gameState.getWalls()[pacmanPosition[0]-1][pacmanPosition[1]]):
-                        qState = self.actions["North"]
+                        qState = self.actions["East"]
+                        if(gameState.getWalls()[pacmanPosition[0]+1][pacmanPosition[1]]):
+                            qState = self.actions["South"]                   
         elif(ghostPosition[0] > pacmanPosition[0]):
             qState = self.actions["East"] #Este
             if(gameState.getWalls()[pacmanPosition[0]+1][pacmanPosition[1]]):
-                qState = self.actions["North"]
-                if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]+1]):
+                if(ghostPosition[1] > pacmanPosition[1]):
+                    qState = self.actions["North"]
+                    if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]+1]):
+                        qState = self.actions["South"]
+                        if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]-1]):
+                            qState = self.actions["West"]
+                elif(ghostPosition[1] < pacmanPosition[1]):
                     qState = self.actions["South"]
                     if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]-1]):
+                        qState = self.actions["North"]
+                        if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]+1]):
+                            qState = self.actions["West"]
+        elif (ghostPosition[1] < pacmanPosition[1]):
+            qState = self.actions["South"] #Sur
+            if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]-1]):
+                if(ghostPosition[0] > pacmanPosition[0]):
+                    qState = self.actions["East"]
+                    if(gameState.getWalls()[pacmanPosition[0]+1][pacmanPosition[1]]):
                         qState = self.actions["West"]
+                        if(gameState.getWalls()[pacmanPosition[0]-1][pacmanPosition[1]]):
+                            qState = self.actions["North"]
+                elif(ghostPosition[0] < pacmanPosition[0]):
+                    qState = self.actions["West"]
+                    if(gameState.getWalls()[pacmanPosition[0]-1][pacmanPosition[1]]):
+                        qState = self.actions["East"]
+                        if(gameState.getWalls()[pacmanPosition[0]+1][pacmanPosition[1]]):
+                            qState = self.actions["North"]
         elif (ghostPosition[0] < pacmanPosition[0]):
             qState = self.actions["West"] #Oeste
             if(gameState.getWalls()[pacmanPosition[0]-1][pacmanPosition[1]]):
-                qState = self.actions["North"]
-                if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]+1]):
+                if(ghostPosition[1] > pacmanPosition[1]):
+                        qState = self.actions["North"]
+                        if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]+1]):
+                            qState = self.actions["South"]
+                            if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]-1]):
+                                qState = self.actions["East"]
+                elif(ghostPosition[1] < pacmanPosition[1]):
                     qState = self.actions["South"]
                     if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]-1]):
-                        qState = self.actions["East"]          
+                        qState = self.actions["North"]
+                        if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]+1]):
+                            qState = self.actions["East"]     
         return qState
 
     def getQValue(self, state, action):
@@ -588,8 +610,6 @@ class QLearningAgent(BustersAgent):
  
         print("Corresponding Q-table cell to update:", position, action_column)
         position = self.computePosition(state)       
-
-        # If terminal_state
 
         actionNext = self.computeActionFromQValues(nextState)
 
