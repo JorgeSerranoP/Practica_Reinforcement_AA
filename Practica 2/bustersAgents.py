@@ -385,7 +385,7 @@ class QLearningAgent(BustersAgent):
         self.epsilon = 0.05
         self.alpha = 0.8
         self.discount = 0.8
-        self.actions = {"North": 0, "East": 1, "South": 2, "West": 3}
+        self.actions = {"North": 0, "South": 1, "East": 2, "West": 3}
         self.lastState = None
 
         if os.path.exists("qtable.txt"):          
@@ -398,7 +398,6 @@ class QLearningAgent(BustersAgent):
             self.initializeQTable(4)
 
     def initializeQTable(self, nrwos):
-        print(nrwos)
         self.q_table = np.zeros((nrwos, len(self.actions)))
 
     def readQtable(self):
@@ -479,21 +478,37 @@ class QLearningAgent(BustersAgent):
         # Pacman position
         pacmanPosition = gameState.getPacmanPosition()
         if (ghostPosition[1] > pacmanPosition[1]):
-            qState = 0 #Norte 
+            qState = self.actions["North"] #Norte 
             if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]+1]):
-                qState = 2
+                qState = self.actions["East"]
+                if(gameState.getWalls()[pacmanPosition[0]+1][pacmanPosition[1]]):
+                    qState = self.actions["West"]
+                    if(gameState.getWalls()[pacmanPosition[0]-1][pacmanPosition[1]]):
+                        qState = self.actions["South"]
         elif (ghostPosition[1]< pacmanPosition[1]):
-            qState = 1 #Sur
+            qState = self.actions["South"] #Sur
             if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]-1]):
-                qState = 2
+                qState = self.actions["East"]
+                if(gameState.getWalls()[pacmanPosition[0]+1][pacmanPosition[1]]):
+                    qState = self.actions["West"]
+                    if(gameState.getWalls()[pacmanPosition[0]-1][pacmanPosition[1]]):
+                        qState = self.actions["North"]
         elif(ghostPosition[0] > pacmanPosition[0]):
-            qState = 2 #Este
+            qState = self.actions["East"] #Este
             if(gameState.getWalls()[pacmanPosition[0]+1][pacmanPosition[1]]):
-                qState = 0
+                qState = self.actions["North"]
+                if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]+1]):
+                    qState = self.actions["South"]
+                    if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]-1]):
+                        qState = self.actions["West"]
         elif (ghostPosition[0] < pacmanPosition[0]):
-            qState = 3 #Oeste
+            qState = self.actions["West"] #Oeste
             if(gameState.getWalls()[pacmanPosition[0]-1][pacmanPosition[1]]):
-                qState = 0          
+                qState = self.actions["North"]
+                if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]+1]):
+                    qState = self.actions["South"]
+                    if(gameState.getWalls()[pacmanPosition[0]][pacmanPosition[1]-1]):
+                        qState = self.actions["East"]          
         return qState
 
     def getQValue(self, state, action):
